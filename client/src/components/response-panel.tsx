@@ -41,11 +41,12 @@ export default function ResponsePanel({
   const { toast } = useToast();
 
   const submitComparisonMutation = useMutation({
-    mutationFn: async (data: { winner: string; rating?: number }) => {
+    mutationFn: async (data: { winner: string; rating?: number; comment?: string }) => {
       const response = await apiRequest("POST", "/api/comparisons", {
         chatSessionId,
         winner: variant === "blue" ? "modelA" : "modelB",
         [variant === "blue" ? "modelARating" : "modelBRating"]: data.rating,
+        [variant === "blue" ? "modelAComment" : "modelBComment"]: data.comment,
         userId: user?.id,
       });
       return response.json();
@@ -65,7 +66,8 @@ export default function ResponsePanel({
     onVote();
     submitComparisonMutation.mutate({ 
       winner: variant === "blue" ? "modelA" : "modelB",
-      rating: rating[0] || undefined 
+      rating: rating[0] || undefined,
+      comment: comment || undefined
     });
 
     setTimeout(() => setHasVoted(false), 2000);

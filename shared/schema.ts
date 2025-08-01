@@ -20,6 +20,8 @@ export const comparisons = pgTable("comparisons", {
   winner: text("winner").notNull(), // 'modelA' or 'modelB'
   modelARating: integer("model_a_rating"),
   modelBRating: integer("model_b_rating"),
+  modelAComment: text("model_a_comment"),
+  modelBComment: text("model_b_comment"),
   userId: text("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -38,6 +40,8 @@ export const insertComparisonSchema = createInsertSchema(comparisons).pick({
   winner: true,
   modelARating: true,
   modelBRating: true,
+  modelAComment: true,
+  modelBComment: true,
   userId: true,
 });
 

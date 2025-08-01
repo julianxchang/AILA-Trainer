@@ -138,25 +138,56 @@ export default function ResultsDashboard() {
             <CardContent className="space-y-4">
               {recentComparisons.length > 0 ? (
                 recentComparisons.map((comparison: any, index: number) => (
-                  <div key={index} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 mb-1">
-                        Comparison #{comparison.id?.slice(0, 8)}...
-                      </p>
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>{new Date(comparison.createdAt).toLocaleDateString()}</span>
-                        {(comparison.modelARating || comparison.modelBRating) && (
-                          <span className="flex items-center">
-                            <Star className="w-3 h-3 text-yellow-400 mr-1" />
-                            {comparison.modelARating || comparison.modelBRating}
-                          </span>
-                        )}
+                  <div key={index} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          Comparison #{comparison.id?.slice(0, 8)}...
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(comparison.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="ml-4">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          Winner: {comparison.winner === "modelA" ? "GPT-4" : "Claude"}
+                        </span>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                        {comparison.winner === "modelA" ? "GPT-4" : "Claude"}
-                      </span>
+                    
+                    {/* Model Ratings Display */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white p-3 rounded border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-blue-600">GPT-4 Turbo</span>
+                          {comparison.modelARating && (
+                            <span className="text-sm font-semibold text-gray-900">
+                              {comparison.modelARating}/10
+                            </span>
+                          )}
+                        </div>
+                        {comparison.modelAComment && (
+                          <p className="text-xs text-gray-600 italic">
+                            "{comparison.modelAComment}"
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="bg-white p-3 rounded border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-green-600">Claude 3 Opus</span>
+                          {comparison.modelBRating && (
+                            <span className="text-sm font-semibold text-gray-900">
+                              {comparison.modelBRating}/10
+                            </span>
+                          )}
+                        </div>
+                        {comparison.modelBComment && (
+                          <p className="text-xs text-gray-600 italic">
+                            "{comparison.modelBComment}"
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -206,7 +237,13 @@ export default function ResultsDashboard() {
                         Winner
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Rating
+                        GPT-4 Rating
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Claude Rating
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Notes
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
@@ -227,18 +264,38 @@ export default function ResultsDashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex text-yellow-400">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star 
-                                  key={star} 
-                                  className={`h-3 w-3 ${star <= (comparison.modelARating || comparison.modelBRating || 0) ? 'fill-current' : ''}`} 
-                                />
-                              ))}
-                            </div>
-                            <span className="ml-2 text-sm text-gray-600">
-                              {comparison.modelARating || comparison.modelBRating || "N/A"}
-                            </span>
+                          <div className="text-sm text-gray-900">
+                            {comparison.modelARating ? (
+                              <span className="font-medium">{comparison.modelARating}/10</span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {comparison.modelBRating ? (
+                              <span className="font-medium">{comparison.modelBRating}/10</span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="max-w-xs">
+                            {comparison.modelAComment && (
+                              <div className="text-xs text-gray-600 mb-1">
+                                <span className="font-medium text-blue-600">GPT-4:</span> {comparison.modelAComment}
+                              </div>
+                            )}
+                            {comparison.modelBComment && (
+                              <div className="text-xs text-gray-600">
+                                <span className="font-medium text-green-600">Claude:</span> {comparison.modelBComment}
+                              </div>
+                            )}
+                            {!comparison.modelAComment && !comparison.modelBComment && (
+                              <span className="text-gray-400 text-xs">No notes</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
