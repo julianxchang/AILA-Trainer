@@ -3,9 +3,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Bot, ThumbsUp, Star } from "lucide-react";
+import { Bot, ThumbsUp, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ResponsePanelProps {
@@ -15,6 +18,7 @@ interface ResponsePanelProps {
   isLoading: boolean;
   onVote: () => void;
   onRate: (rating: number) => void;
+  onComment: (comment: string) => void;
   variant: "blue" | "green";
   chatSessionId?: string;
 }
@@ -26,10 +30,12 @@ export default function ResponsePanel({
   isLoading,
   onVote,
   onRate,
+  onComment,
   variant,
   chatSessionId,
 }: ResponsePanelProps) {
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState([5]);
+  const [comment, setComment] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -59,15 +65,20 @@ export default function ResponsePanel({
     onVote();
     submitComparisonMutation.mutate({ 
       winner: variant === "blue" ? "modelA" : "modelB",
-      rating: rating || undefined 
+      rating: rating[0] || undefined 
     });
 
     setTimeout(() => setHasVoted(false), 2000);
   };
 
-  const handleRating = (newRating: number) => {
+  const handleRating = (newRating: number[]) => {
     setRating(newRating);
-    onRate(newRating);
+    onRate(newRating[0]);
+  };
+
+  const handleCommentChange = (newComment: string) => {
+    setComment(newComment);
+    onComment(newComment);
   };
 
   const variantClasses = {
@@ -121,29 +132,28 @@ export default function ResponsePanel({
         )}
       </div>
       
-      {/* Voting Section */}
-      <div className="p-6 border-t border-gray-100 bg-gray-50">
+      {/* Rating and Voting Section */}
+      <div className="p-6 border-t border-gray-100 bg-gray-50 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-700">Rate this response:</span>
-            <div className="flex space-x-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Button
-                  key={star}
-                  variant="ghost"
-                  size="sm"
-                  className="p-0 h-6 w-6 hover:bg-transparent"
-                  onClick={() => handleRating(star)}
-                  disabled={!response}
-                >
-                  <Star 
-                    className={cn(
-                      "h-4 w-4 transition-colors",
-                      star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                    )}
-                  />
-                </Button>
-              ))}
+          <div className="flex-1 mr-6">
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+              Rate this response (1-10):
+            </Label>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-500">1</span>
+              <Slider
+                value={rating}
+                onValueChange={handleRating}
+                max={10}
+                min={1}
+                step={1}
+                className="flex-1"
+                disabled={!response}
+              />
+              <span className="text-sm text-gray-500">10</span>
+              <span className="text-sm font-medium text-gray-900 w-6">
+                {rating[0]}
+              </span>
             </div>
           </div>
           <Button
@@ -157,6 +167,21 @@ export default function ResponsePanel({
             <ThumbsUp className="mr-2 h-4 w-4" />
             {hasVoted ? "Selected!" : "Choose This"}
           </Button>
+        </div>
+        
+        {/* Comment Section */}
+        <div>
+          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            Notes and Comments:
+          </Label>
+          <Textarea
+            value={comment}
+            onChange={(e) => handleCommentChange(e.target.value)}
+            placeholder="Add your notes about this response..."
+            className="resize-none"
+            rows={3}
+            disabled={!response}
+          />
         </div>
       </div>
     </div>

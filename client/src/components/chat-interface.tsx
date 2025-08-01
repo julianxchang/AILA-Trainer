@@ -124,10 +124,11 @@ export default function ChatInterface() {
         <ResponsePanel
           title="AI Model A"
           modelName={currentSession?.modelAName || "GPT-4 Turbo"}
-          response={currentSession?.modelAResponse}
+          response={currentSession?.modelAResponse || null}
           isLoading={submitPromptMutation.isPending}
           onVote={() => handleVote("modelA")}
           onRate={(rating) => console.log("Rate A:", rating)}
+          onComment={(comment) => console.log("Comment A:", comment)}
           variant="blue"
           chatSessionId={currentSession?.id}
         />
@@ -135,10 +136,11 @@ export default function ChatInterface() {
         <ResponsePanel
           title="AI Model B"
           modelName={currentSession?.modelBName || "Claude 3 Opus"}
-          response={currentSession?.modelBResponse}
+          response={currentSession?.modelBResponse || null}
           isLoading={submitPromptMutation.isPending}
           onVote={() => handleVote("modelB")}
           onRate={(rating) => console.log("Rate B:", rating)}
+          onComment={(comment) => console.log("Comment B:", comment)}
           variant="green"
           chatSessionId={currentSession?.id}
         />
