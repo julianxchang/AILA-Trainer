@@ -16,11 +16,11 @@ interface ResponsePanelProps {
   modelName: string;
   response: string | null;
   isLoading: boolean;
-  onVote: () => void;
   onRate: (rating: number) => void;
   onComment: (comment: string) => void;
   variant: "blue" | "green";
-  chatSessionId?: string;
+  rating: number;
+  comment: string;
 }
 
 export default function ResponsePanel({
@@ -28,58 +28,18 @@ export default function ResponsePanel({
   modelName,
   response,
   isLoading,
-  onVote,
   onRate,
   onComment,
   variant,
-  chatSessionId,
+  rating,
+  comment,
 }: ResponsePanelProps) {
-  const [rating, setRating] = useState([5]);
-  const [comment, setComment] = useState("");
-  const [hasVoted, setHasVoted] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  const submitComparisonMutation = useMutation({
-    mutationFn: async (data: { winner: string; rating?: number; comment?: string }) => {
-      const response = await apiRequest("POST", "/api/comparisons", {
-        chatSessionId,
-        winner: variant === "blue" ? "modelA" : "modelB",
-        [variant === "blue" ? "modelARating" : "modelBRating"]: data.rating,
-        [variant === "blue" ? "modelAComment" : "modelBComment"]: data.comment,
-        userId: user?.id,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Vote recorded",
-        description: "Your comparison has been saved successfully",
-      });
-    },
-  });
-
-  const handleVote = () => {
-    if (!chatSessionId) return;
-    
-    setHasVoted(true);
-    onVote();
-    submitComparisonMutation.mutate({ 
-      winner: variant === "blue" ? "modelA" : "modelB",
-      rating: rating[0] || undefined,
-      comment: comment || undefined
-    });
-
-    setTimeout(() => setHasVoted(false), 2000);
-  };
 
   const handleRating = (newRating: number[]) => {
-    setRating(newRating);
     onRate(newRating[0]);
   };
 
   const handleCommentChange = (newComment: string) => {
-    setComment(newComment);
     onComment(newComment);
   };
 
@@ -134,41 +94,28 @@ export default function ResponsePanel({
         )}
       </div>
       
-      {/* Rating and Voting Section */}
+      {/* Rating and Comment Section */}
       <div className="p-6 border-t border-gray-100 bg-gray-50 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 mr-6">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">
-              Rate this response (1-10):
-            </Label>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">1</span>
-              <Slider
-                value={rating}
-                onValueChange={handleRating}
-                max={10}
-                min={1}
-                step={1}
-                className="flex-1"
-                disabled={!response}
-              />
-              <span className="text-sm text-gray-500">10</span>
-              <span className="text-sm font-medium text-gray-900 w-6">
-                {rating[0]}
-              </span>
-            </div>
+        <div>
+          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            Rate this response (1-10):
+          </Label>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-500">1</span>
+            <Slider
+              value={[rating]}
+              onValueChange={handleRating}
+              max={10}
+              min={1}
+              step={1}
+              className="flex-1"
+              disabled={!response}
+            />
+            <span className="text-sm text-gray-500">10</span>
+            <span className="text-sm font-medium text-gray-900 w-6">
+              {rating}
+            </span>
           </div>
-          <Button
-            onClick={handleVote}
-            disabled={!response || hasVoted}
-            className={cn(
-              "font-medium transition-all duration-200",
-              hasVoted ? variantClasses[variant].voted : variantClasses[variant].button
-            )}
-          >
-            <ThumbsUp className="mr-2 h-4 w-4" />
-            {hasVoted ? "Selected!" : "Choose This"}
-          </Button>
         </div>
         
         {/* Comment Section */}

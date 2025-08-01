@@ -7,13 +7,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import ResponsePanel from "@/components/response-panel";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, ThumbsUp } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
 
 export default function ChatInterface() {
   const [prompt, setPrompt] = useState("");
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [sessionStats, setSessionStats] = useState({ total: 0, modelAWins: 0, modelBWins: 0 });
+  const [modelARating, setModelARating] = useState(5);
+  const [modelBRating, setModelBRating] = useState(5);
+  const [modelAComment, setModelAComment] = useState("");
+  const [modelBComment, setModelBComment] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -29,6 +33,10 @@ export default function ChatInterface() {
     onSuccess: (data: ChatSession) => {
       setCurrentSession(data);
       setPrompt("");
+      setModelARating(5);
+      setModelBRating(5);
+      setModelAComment("");
+      setModelBComment("");
       toast({
         title: "Success",
         description: "AI responses generated successfully",
@@ -38,6 +46,43 @@ export default function ChatInterface() {
       toast({
         title: "Error",
         description: "Failed to get AI responses. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const submitComparisonMutation = useMutation({
+    mutationFn: async () => {
+      const winner = modelARating >= modelBRating ? "modelA" : "modelB";
+      const response = await apiRequest("POST", "/api/comparisons", {
+        chatSessionId: currentSession?.id,
+        winner,
+        modelARating,
+        modelBRating,
+        modelAComment: modelAComment || undefined,
+        modelBComment: modelBComment || undefined,
+        userId: user?.id,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      const winner = modelARating >= modelBRating ? "modelA" : "modelB";
+      setSessionStats(prev => ({
+        total: prev.total + 1,
+        modelAWins: prev.modelAWins + (winner === "modelA" ? 1 : 0),
+        modelBWins: prev.modelBWins + (winner === "modelB" ? 1 : 0),
+      }));
+      toast({
+        title: "Comparison Submitted",
+        description: "Your ratings and comments have been saved successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/comparisons"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit comparison. Please try again.",
         variant: "destructive",
       });
     },
@@ -53,14 +98,15 @@ export default function ChatInterface() {
   const handleClear = () => {
     setPrompt("");
     setCurrentSession(null);
+    setModelARating(5);
+    setModelBRating(5);
+    setModelAComment("");
+    setModelBComment("");
   };
 
-  const handleVote = (winner: "modelA" | "modelB") => {
-    setSessionStats(prev => ({
-      total: prev.total + 1,
-      modelAWins: prev.modelAWins + (winner === "modelA" ? 1 : 0),
-      modelBWins: prev.modelBWins + (winner === "modelB" ? 1 : 0),
-    }));
+  const handleSubmitComparison = () => {
+    if (!currentSession) return;
+    submitComparisonMutation.mutate();
   };
 
   const handleExport = () => {
@@ -126,11 +172,11 @@ export default function ChatInterface() {
           modelName={currentSession?.modelAName || "GPT-4 Turbo"}
           response={currentSession?.modelAResponse || null}
           isLoading={submitPromptMutation.isPending}
-          onVote={() => handleVote("modelA")}
-          onRate={(rating) => console.log("Rate A:", rating)}
-          onComment={(comment) => console.log("Comment A:", comment)}
+          onRate={setModelARating}
+          onComment={setModelAComment}
           variant="blue"
-          chatSessionId={currentSession?.id}
+          rating={modelARating}
+          comment={modelAComment}
         />
         
         <ResponsePanel
@@ -138,11 +184,11 @@ export default function ChatInterface() {
           modelName={currentSession?.modelBName || "Claude 3 Opus"}
           response={currentSession?.modelBResponse || null}
           isLoading={submitPromptMutation.isPending}
-          onVote={() => handleVote("modelB")}
-          onRate={(rating) => console.log("Rate B:", rating)}
-          onComment={(comment) => console.log("Comment B:", comment)}
+          onRate={setModelBRating}
+          onComment={setModelBComment}
           variant="green"
-          chatSessionId={currentSession?.id}
+          rating={modelBRating}
+          comment={modelBComment}
         />
       </div>
 
@@ -164,12 +210,24 @@ export default function ChatInterface() {
                 <p className="text-2xl font-bold text-green-600">{sessionStats.modelBWins}</p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleExport}>
-              <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-              Export Results
-            </Button>
+            <div className="flex items-center space-x-3">
+              {currentSession && (
+                <Button 
+                  onClick={handleSubmitComparison}
+                  disabled={submitComparisonMutation.isPending}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <ThumbsUp className="mr-2 h-4 w-4" />
+                  {submitComparisonMutation.isPending ? "Submitting..." : "Submit Comparison"}
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleExport}>
+                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Export Results
+              </Button>
+            </div>
           </div>
         </div>
       </div>
