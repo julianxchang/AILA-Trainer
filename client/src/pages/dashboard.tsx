@@ -19,8 +19,8 @@ export default function Dashboard() {
               <Scale className="text-white h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">AI Model Comparison</h1>
-              <p className="text-sm text-gray-600">Legal Professional Dashboard</p>
+              <h1 className="text-xl font-bold text-gray-900">Legal Document Analysis</h1>
+              <p className="text-sm text-gray-600">AI Response Comparison Platform</p>
             </div>
           </div>
           
@@ -51,7 +51,7 @@ export default function Dashboard() {
                 className="flex items-center gap-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary rounded-none py-4"
               >
                 <MessageSquare className="h-4 w-4" />
-                AI Comparison
+                Document Analysis
               </TabsTrigger>
               <TabsTrigger 
                 value="results"

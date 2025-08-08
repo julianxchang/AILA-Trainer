@@ -11,7 +11,7 @@ import { Send, Trash2, ThumbsUp } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
 
 export default function ChatInterface() {
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState("Subject: Contract Review - Mutual Non-Disclosure Agreement\n\nDear Legal Team,\n\nI hope this email finds you well. I am writing to request your review of the attached Mutual Non-Disclosure Agreement (MNDA) that we have received from TechCorp Solutions for our upcoming collaboration on Project Alpha.\n\nKey areas I would like you to focus on:\n\n1. Duration and termination clauses\n2. Definition of confidential information\n3. Return or destruction of materials\n4. Governing law and jurisdiction\n5. Any unusual or concerning provisions\n\nThe proposed collaboration involves sharing our proprietary software development methodologies and they will be sharing their market research data. The project is expected to run for approximately 18 months.\n\nPlease let me know if you need any additional context or if you have any questions. I would appreciate your feedback by Friday so we can respond to TechCorp in a timely manner.\n\nBest regards,\nSarah Johnson\nBusiness Development Manager");
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [sessionStats, setSessionStats] = useState({ total: 0, modelAWins: 0, modelBWins: 0 });
   const [modelARating, setModelARating] = useState(5);
@@ -90,9 +90,7 @@ export default function ChatInterface() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      submitPromptMutation.mutate(prompt.trim());
-    }
+    submitPromptMutation.mutate(prompt.trim());
   };
 
   const handleClear = () => {
@@ -129,27 +127,28 @@ export default function ChatInterface() {
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-4xl mx-auto">
           <Label className="block text-sm font-medium text-gray-700 mb-3">
-            Legal Query or Prompt
+            Legal Document to Analyze
           </Label>
           <form onSubmit={handleSubmit} className="flex space-x-4">
             <div className="flex-1">
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                rows={3}
-                className="resize-none"
+                rows={8}
+                className="resize-none bg-gray-50"
                 placeholder="Enter your legal question or prompt for AI model comparison..."
-                disabled={submitPromptMutation.isPending}
+                disabled={true}
+                readOnly
               />
             </div>
             <div className="flex flex-col space-y-2">
               <Button 
                 type="submit" 
-                disabled={!prompt.trim() || submitPromptMutation.isPending}
+                disabled={submitPromptMutation.isPending}
                 className="px-6"
               >
                 <Send className="mr-2 h-4 w-4" />
-                {submitPromptMutation.isPending ? "Generating..." : "Submit"}
+                {submitPromptMutation.isPending ? "Analyzing..." : "Analyze Document"}
               </Button>
               <Button 
                 type="button"
@@ -168,8 +167,8 @@ export default function ChatInterface() {
       {/* Comparison Panels */}
       <div className="flex-1 flex">
         <ResponsePanel
-          title="AI Model A"
-          modelName={currentSession?.modelAName || "GPT-4 Turbo"}
+          title="Response 1"
+          modelName={currentSession?.modelAName || "Legal Analysis System"}
           response={currentSession?.modelAResponse || null}
           isLoading={submitPromptMutation.isPending}
           onRate={setModelARating}
@@ -180,8 +179,8 @@ export default function ChatInterface() {
         />
         
         <ResponsePanel
-          title="AI Model B"
-          modelName={currentSession?.modelBName || "Claude 3 Opus"}
+          title="Response 2"
+          modelName={currentSession?.modelBName || "Contract Review Assistant"}
           response={currentSession?.modelBResponse || null}
           isLoading={submitPromptMutation.isPending}
           onRate={setModelBRating}
@@ -202,11 +201,11 @@ export default function ChatInterface() {
                 <p className="text-2xl font-bold text-gray-900">{sessionStats.total}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-600">Model A Wins</p>
+                <p className="text-sm text-gray-600">Response 1 Wins</p>
                 <p className="text-2xl font-bold text-blue-600">{sessionStats.modelAWins}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-600">Model B Wins</p>
+                <p className="text-sm text-gray-600">Response 2 Wins</p>
                 <p className="text-2xl font-bold text-green-600">{sessionStats.modelBWins}</p>
               </div>
             </div>

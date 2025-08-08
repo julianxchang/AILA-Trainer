@@ -39,7 +39,7 @@ export default function ResultsDashboard() {
                   <MessageSquare className="text-blue-600 h-6 w-6" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Comparisons</p>
+                  <p className="text-sm font-medium text-gray-600">Total Analysis</p>
                   <p className="text-2xl font-bold text-gray-900">{stats?.totalComparisons || 0}</p>
                 </div>
               </div>
@@ -81,7 +81,7 @@ export default function ResultsDashboard() {
                   <Trophy className="text-orange-600 h-6 w-6" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Preferred Model</p>
+                  <p className="text-sm font-medium text-gray-600">Preferred Response</p>
                   <p className="text-2xl font-bold text-gray-900">{stats?.preferredModel || "N/A"}</p>
                 </div>
               </div>
@@ -95,13 +95,13 @@ export default function ResultsDashboard() {
           {/* Model Performance Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Model Performance Comparison</CardTitle>
+              <CardTitle className="text-lg">Response Performance Comparison</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-700">GPT-4 Turbo</span>
+                  <span className="text-sm font-medium text-gray-700">Response 1</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
@@ -116,7 +116,7 @@ export default function ResultsDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-700">Claude 3 Opus</span>
+                  <span className="text-sm font-medium text-gray-700">Response 2</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
@@ -133,7 +133,7 @@ export default function ResultsDashboard() {
           {/* Recent Comparisons */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent Comparisons</CardTitle>
+              <CardTitle className="text-lg">Recent Analysis</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {recentComparisons.length > 0 ? (
@@ -142,7 +142,7 @@ export default function ResultsDashboard() {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 mb-1">
-                          Comparison #{comparison.id?.slice(0, 8)}...
+                          Analysis #{comparison.id?.slice(0, 8)}...
                         </p>
                         <p className="text-xs text-gray-500">
                           {new Date(comparison.createdAt).toLocaleDateString()}
@@ -150,7 +150,7 @@ export default function ResultsDashboard() {
                       </div>
                       <div className="ml-4">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          Winner: {comparison.winner === "modelA" ? "GPT-4" : "Claude"}
+                          Winner: {comparison.winner === "modelA" ? "Response 1" : "Response 2"}
                         </span>
                       </div>
                     </div>
@@ -159,7 +159,7 @@ export default function ResultsDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white p-3 rounded border">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-blue-600">GPT-4 Turbo</span>
+                          <span className="text-xs font-medium text-blue-600">Response 1</span>
                           {comparison.modelARating && (
                             <span className="text-sm font-semibold text-gray-900">
                               {comparison.modelARating}/10
@@ -175,7 +175,7 @@ export default function ResultsDashboard() {
                       
                       <div className="bg-white p-3 rounded border">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-green-600">Claude 3 Opus</span>
+                          <span className="text-xs font-medium text-green-600">Response 2</span>
                           {comparison.modelBRating && (
                             <span className="text-sm font-semibold text-gray-900">
                               {comparison.modelBRating}/10
@@ -193,8 +193,8 @@ export default function ResultsDashboard() {
                 ))
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <p>No comparisons yet</p>
-                  <p className="text-sm">Start comparing AI responses to see results here</p>
+                  <p>No analysis yet</p>
+                  <p className="text-sm">Start analyzing legal documents to see results here</p>
                 </div>
               )}
             </CardContent>
@@ -205,7 +205,7 @@ export default function ResultsDashboard() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Comparison History</CardTitle>
+              <CardTitle className="text-lg">Analysis History</CardTitle>
               <div className="flex items-center space-x-3">
                 <Select defaultValue="7days">
                   <SelectTrigger className="w-32">
@@ -231,16 +231,16 @@ export default function ResultsDashboard() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Comparison
+                        Analysis
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Winner
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        GPT-4 Rating
+                        Response 1 Rating
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Claude Rating
+                        Response 2 Rating
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Notes
@@ -255,12 +255,12 @@ export default function ResultsDashboard() {
                       <tr key={comparison.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            Comparison #{comparison.id?.slice(0, 8)}...
+                            Analysis #{comparison.id?.slice(0, 8)}...
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                            {comparison.winner === "modelA" ? "GPT-4" : "Claude"}
+                            {comparison.winner === "modelA" ? "Response 1" : "Response 2"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -285,12 +285,12 @@ export default function ResultsDashboard() {
                           <div className="max-w-xs">
                             {comparison.modelAComment && (
                               <div className="text-xs text-gray-600 mb-1">
-                                <span className="font-medium text-blue-600">GPT-4:</span> {comparison.modelAComment}
+                                <span className="font-medium text-blue-600">Response 1:</span> {comparison.modelAComment}
                               </div>
                             )}
                             {comparison.modelBComment && (
                               <div className="text-xs text-gray-600">
-                                <span className="font-medium text-green-600">Claude:</span> {comparison.modelBComment}
+                                <span className="font-medium text-green-600">Response 2:</span> {comparison.modelBComment}
                               </div>
                             )}
                             {!comparison.modelAComment && !comparison.modelBComment && (
@@ -309,8 +309,8 @@ export default function ResultsDashboard() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <MessageSquare className="mx-auto h-12 w-12 mb-4" />
-                <p className="text-lg font-medium">No comparison data available</p>
-                <p className="text-sm">Start comparing AI responses to see detailed analytics here</p>
+                <p className="text-lg font-medium">No analysis data available</p>
+                <p className="text-sm">Start analyzing legal documents to see detailed analytics here</p>
               </div>
             )}
           </CardContent>
