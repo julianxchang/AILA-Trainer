@@ -8,64 +8,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create chat session and get AI responses
   app.post("/api/chats", async (req, res) => {
     try {
-      const { prompt, userId } = insertChatSessionSchema.parse({
-        ...req.body,
-        userId: req.body.userId || "demo-user", // In real app, extract from JWT
-      });
+      const { prompt, response1, response2, userId } = req.body;
 
       // Create initial chat session
       const chatSession = await storage.createChatSession({
-        userId,
+        userId: userId || "demo-user",
         prompt,
         modelAResponse: null,
         modelBResponse: null,
-        modelAName: "Legal Analysis System",
-        modelBName: "Contract Review Assistant",
+        modelAName: "Legal Document Assistant",
+        modelBName: "Real Estate Legal Advisor",
       });
 
-      // Simulate AI responses (in real app, call actual AI APIs)
-      const modelAResponse = `**Contract Review Summary - Mutual Non-Disclosure Agreement**
-
-**Key Findings:**
-1. **Duration & Termination:** The 5-year confidentiality term appears standard for technology collaborations, with automatic renewal clause that may require attention.
-
-2. **Confidential Information Definition:** Broadly defined but includes appropriate carve-outs for independently developed information and publicly available data.
-
-3. **Return/Destruction:** 30-day return requirement upon termination is reasonable. Electronic data destruction certification should be required.
-
-4. **Governing Law:** Delaware law specified with federal court jurisdiction. Consider alternative dispute resolution clause.
-
-**Recommendations:**
-- Add specific provisions for return of proprietary software methodologies
-- Include mutual indemnification for data breaches
-- Consider adding non-solicitation clause for Project Alpha duration
-
-**Overall Assessment:** Agreement is generally favorable with minor modifications recommended.`;
-      
-      const modelBResponse = `**Legal Analysis: TechCorp MNDA Review**
-
-**Critical Issues Identified:**
-
-**HIGH PRIORITY:**
-- Reciprocity imbalance in confidentiality obligations (Section 3.2)
-- Overly broad definition of "Confidential Information" may capture non-proprietary data
-- Liquidated damages clause (Section 7.1) may be unenforceable as penalty
-
-**MEDIUM PRIORITY:**
-- Survival clause extends confidentiality obligations beyond reasonable term
-- Assignment rights favor TechCorp disproportionately
-- Dispute resolution mechanism lacks efficiency measures
-
-**LOW PRIORITY:**
-- Standard provisions regarding public disclosures and legal compulsion
-
-**Legal Strategy:**
-1. Negotiate reciprocal confidentiality terms
-2. Narrow confidential information scope to truly proprietary materials
-3. Replace liquidated damages with reasonable limitation of liability
-4. Add termination for convenience with 60-day notice
-
-**Recommendation:** Significant revisions required before execution.`;
+      // Use the provided responses (predetermined examples)
+      const modelAResponse = response1;
+      const modelBResponse = response2;
 
       // Update with responses
       const updatedSession = await storage.updateChatSession(chatSession.id, {

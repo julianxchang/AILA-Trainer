@@ -11,7 +11,31 @@ import { Send, Trash2, ThumbsUp } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
 
 export default function ChatInterface() {
-  const [prompt, setPrompt] = useState("Subject: Contract Review - Mutual Non-Disclosure Agreement\n\nDear Legal Team,\n\nI hope this email finds you well. I am writing to request your review of the attached Mutual Non-Disclosure Agreement (MNDA) that we have received from TechCorp Solutions for our upcoming collaboration on Project Alpha.\n\nKey areas I would like you to focus on:\n\n1. Duration and termination clauses\n2. Definition of confidential information\n3. Return or destruction of materials\n4. Governing law and jurisdiction\n5. Any unusual or concerning provisions\n\nThe proposed collaboration involves sharing our proprietary software development methodologies and they will be sharing their market research data. The project is expected to run for approximately 18 months.\n\nPlease let me know if you need any additional context or if you have any questions. I would appreciate your feedback by Friday so we can respond to TechCorp in a timely manner.\n\nBest regards,\nSarah Johnson\nBusiness Development Manager");
+  const examples = [
+    {
+      prompt: "Hi Manny,\nI hope you are doing well during these crazy days. We have an offer for $252K with 3% down. Kathleen and David have agreed to it\nHave a great rest of your weekend. I appreciate your time.",
+      response1: "Dear Manny,\nThank you for providing the initial information regarding the property transaction. We are still missing some key details needed to complete the legal document:\n\nThe date of the legal document.\nThe address of the seller.\nThe address of the buyer.\nThe unit number of the property.\nThe square feet of the property.\nPlease provide this information at your earliest convenience to proceed.\nBest regards,\nMarion D. Houser",
+      response2: "Dear Manny,\nThank you for providing the details so far. We are close to completing the document preparation, but we need a few more details to finalize everything:\n\nThe date of the legal document.\nThe address of the seller.\nThe name of the county.\nThe date of the deed to the seller.\nPlease provide this information at your earliest convenience so we can proceed.\nBest regards,\nMarion D. Houser\nHouser Properties\nBroker/Owner"
+    },
+    {
+      prompt: "Hi Sarah,\nThe buyers want to close by the end of next month. They're offering full asking price at $485K. Can we move forward with the paperwork?\nThanks,\nJim",
+      response1: "Dear Jim,\nI have reviewed the transaction details. To proceed with the closing documents, we need the following information:\n\nThe closing date.\nThe buyer's financing details.\nTitle company information.\nProperty survey requirements.\nHomeowner's insurance verification.\nPlease gather these documents so we can finalize the sale.\nBest regards,\nMarion D. Houser",
+      response2: "Dear Jim,\nThank you for the update on the buyer's offer. We need to collect additional details before proceeding:\n\nThe exact closing date.\nThe buyer's pre-approval letter.\nThe escrow company details.\nThe property inspection results.\nPlease send these items when available.\nBest regards,\nMarion D. Houser\nHouser Properties\nBroker/Owner"
+    },
+    {
+      prompt: "Hello,\nWe received the inspection report. Minor issues with plumbing and electrical. Buyers are still interested at $310K with seller covering repairs. Let me know next steps.\nRegards,\nMike",
+      response1: "Dear Mike,\nThank you for the inspection update. To draft the repair addendum, I need:\n\nThe detailed inspection report.\nThe estimated repair costs.\nThe buyer's repair requests.\nThe seller's response timeline.\nProposed repair completion date.\nPlease provide these details to move forward.\nBest regards,\nMarion D. Houser",
+      response2: "Dear Mike,\nI understand the buyers want to proceed with repairs covered by the seller. We need these details:\n\nThe complete inspection report.\nThe contractor estimates.\nThe repair negotiation terms.\nThe amended contract date.\nPlease send this information at your convenience.\nBest regards,\nMarion D. Houser\nHouser Properties\nBroker/Owner"
+    },
+    {
+      prompt: "Hi Marion,\nCash offer came in today for $425K on the downtown property. No contingencies, 15-day close. Seller wants to accept.\nBest,\nLisa",
+      response1: "Dear Lisa,\nExcellent news on the cash offer. For the purchase agreement, we need:\n\nProof of funds from buyer.\nThe proposed closing date.\nThe property legal description.\nThe earnest money amount.\nThe title company selection.\nPlease coordinate these items for swift processing.\nBest regards,\nMarion D. Houser",
+      response2: "Dear Lisa,\nCash offers are always great to work with. Before we finalize, please provide:\n\nThe buyer's bank verification.\nThe exact closing timeline.\nThe property tax information.\nThe HOA details if applicable.\nPlease get these items together so we can proceed.\nBest regards,\nMarion D. Houser\nHouser Properties\nBroker/Owner"
+    }
+  ];
+  
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+  const [prompt, setPrompt] = useState(examples[0].prompt);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [sessionStats, setSessionStats] = useState({ total: 0, modelAWins: 0, modelBWins: 0 });
   const [modelARating, setModelARating] = useState(5);
@@ -23,29 +47,35 @@ export default function ChatInterface() {
   const queryClient = useQueryClient();
 
   const submitPromptMutation = useMutation({
-    mutationFn: async (promptText: string) => {
+    mutationFn: async () => {
+      const currentExample = examples[currentExampleIndex];
       const response = await apiRequest("POST", "/api/chats", {
-        prompt: promptText,
+        prompt: currentExample.prompt,
+        response1: currentExample.response1,
+        response2: currentExample.response2,
         userId: user?.id,
       });
       return response.json();
     },
     onSuccess: (data: ChatSession) => {
       setCurrentSession(data);
-      setPrompt("");
+      // Move to next example for next analysis
+      const nextIndex = (currentExampleIndex + 1) % examples.length;
+      setCurrentExampleIndex(nextIndex);
+      setPrompt(examples[nextIndex].prompt);
       setModelARating(5);
       setModelBRating(5);
       setModelAComment("");
       setModelBComment("");
       toast({
         title: "Success",
-        description: "AI responses generated successfully",
+        description: "Document analysis completed successfully",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to get AI responses. Please try again.",
+        description: "Failed to analyze document. Please try again.",
         variant: "destructive",
       });
     },
@@ -90,11 +120,10 @@ export default function ChatInterface() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitPromptMutation.mutate(prompt.trim());
+    submitPromptMutation.mutate();
   };
 
   const handleClear = () => {
-    setPrompt("");
     setCurrentSession(null);
     setModelARating(5);
     setModelBRating(5);
@@ -116,7 +145,7 @@ export default function ChatInterface() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ai-comparison-results.json";
+    a.download = "document-analysis-results.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -134,9 +163,9 @@ export default function ChatInterface() {
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                rows={8}
+                rows={4}
                 className="resize-none bg-gray-50"
-                placeholder="Enter your legal question or prompt for AI model comparison..."
+                placeholder="Legal document content..."
                 disabled={true}
                 readOnly
               />
@@ -168,7 +197,7 @@ export default function ChatInterface() {
       <div className="flex-1 flex">
         <ResponsePanel
           title="Response 1"
-          modelName={currentSession?.modelAName || "Legal Analysis System"}
+          modelName="Legal Document Assistant"
           response={currentSession?.modelAResponse || null}
           isLoading={submitPromptMutation.isPending}
           onRate={setModelARating}
@@ -180,7 +209,7 @@ export default function ChatInterface() {
         
         <ResponsePanel
           title="Response 2"
-          modelName={currentSession?.modelBName || "Contract Review Assistant"}
+          modelName="Real Estate Legal Advisor"
           response={currentSession?.modelBResponse || null}
           isLoading={submitPromptMutation.isPending}
           onRate={setModelBRating}
