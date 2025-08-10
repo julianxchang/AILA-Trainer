@@ -10,8 +10,8 @@ export const authService = {
     // In a real app, validate JWT and extract user info
     const user: AuthUser = {
       id: "demo-user",
-      name: "Sarah Johnson, Esq.",
-      firm: "Johnson & Associates",
+      name: "Manny",
+      firm: "AILA",
       token,
     };
     

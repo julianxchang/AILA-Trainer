@@ -10,33 +10,46 @@ import ResponsePanel from "@/components/response-panel";
 import { Send, Trash2, ThumbsUp } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
 
+// Extended interface to include response source information
+interface EnhancedChatSession extends ChatSession {
+  responseSource?: "api" | "simulated";
+  isSimulated?: boolean;
+}
+
 export default function ChatInterface() {
   const examples = [
     {
-      prompt: "Hi Manny,\nI hope you are doing well during these crazy days. We have an offer for $252K with 3% down. Kathleen and David have agreed to it\nHave a great rest of your weekend. I appreciate your time.",
-      response1: "Great news! Thanks for letting me know about the offer. $252K with 3% down sounds promising. I'll get started on the paperwork right away and reach out to the title company to begin the process.\n\nI'll need to verify a few details with Kathleen and David - their pre-approval letter and timeline preferences. Can we schedule a call tomorrow to go over the next steps?\n\nThanks for keeping me in the loop!\n\nBest,\nManny",
-      response2: "Hi there,\n\nThanks for the update! This is excellent news - Kathleen and David are great clients and I'm glad they've agreed to the offer.\n\nLet me coordinate with the lender on the 3% down arrangement and make sure we have all the documentation lined up. I'll also reach out to the seller's agent to confirm acceptance and timeline.\n\nI'll keep you posted on the progress. Hope you have a great weekend too!\n\nManny"
+      prompt: "Subject: Need Legal Assistance for Property Purchase\nHi Manny,\nI'm in the process of making an offer on a condo located at 45 Beacon Street, Unit 3B, Boston, MA 02108. I'd like to have you represent me to review the purchase contract, ensure all terms are in my best interest, and guide me through the closing process.\nPlease let me know what information or documents you need from me to get started, as well as your availability for a quick call this week.\nThank you,\nRebecca Collins\n(617) 555-8241\nrebecca.collins@example.com",
     },
     {
-      prompt: "Hi Manny,\nThe buyers want to close by the end of next month. They're offering full asking price at $485K. Can we move forward with the paperwork?\nThanks,\nJim",
-      response1: "Hi Jim,\n\nAbsolutely! Full asking price at $485K is fantastic - let's get this moving immediately.\n\nI'll start preparing the purchase agreement today. Can you send me their pre-approval letter and preferred closing date? I'll also need to coordinate with the title company and schedule the inspection.\n\nEnd of next month gives us a good timeline to work with. I'll keep you updated every step of the way.\n\nTalk soon,\nManny",
-      response2: "Jim,\n\nGreat news on the full asking price offer! Yes, we can definitely move forward with the paperwork.\n\nI'll get the contract drafted this afternoon and send it over for review. Let me know their exact preferred closing date so I can coordinate with all parties involved.\n\nI'll also reach out to the seller to confirm they're ready to proceed at $485K. This should be a smooth transaction.\n\nThanks for the update!\n\nManny"
+      prompt: "Subject: Assistance with Selling My House\nHi Manny,\nI'm preparing to sell my house at 128 Elmwood Avenue, Cambridge, MA 02140. I'd like your assistance in reviewing the listing agreement, negotiating terms with the buyer, and handling all closing documents to make sure the transaction is smooth and compliant.\nPlease let me know your process, fees, and any initial information you need from me to proceed.\nLooking forward to hearing from you,\nDaniel Foster\n(781) 555-9137\ndaniel.foster@example.com",
     },
     {
-      prompt: "Hi Manny,\nWe received the inspection report. Minor issues with plumbing and electrical. Buyers are still interested at $310K with seller covering repairs. Let me know next steps.\nRegards,\nMike",
-      response1: "Hi Mike,\n\nThanks for the inspection update. Minor plumbing and electrical issues are pretty standard - glad the buyers are still committed at $310K.\n\nI'll draft a repair addendum today requesting the seller cover those items. Can you send me the specific details from the inspection report so I can be precise about what needs to be addressed?\n\nOnce I have that, I'll present it to the seller and we should be able to move forward quickly.\n\nManny",
-      response2: "Mike,\n\nGood to hear the buyers are still interested! Minor repair items are totally manageable.\n\nI'll prepare the repair negotiation paperwork and reach out to the seller's agent about covering these costs. Given that they're minor issues, I'm optimistic the seller will agree to handle them.\n\nLet me get the ball rolling on this and I'll update you by tomorrow on the seller's response.\n\nBest,\nManny"
+      prompt: "Subject: Purchase Offer for 72 Seaview Avenue, Marblehead, MA 01945 – Attached\nHi Manny,\nI'm representing my client, Sarah Mitchell, in the purchase of 72 Seaview Avenue, Marblehead, MA 01945, and I've attached her signed offer for your review. Please confirm receipt and let me know if there are any issues or missing documents before we proceed.\nMy client is eager to move forward quickly, so your prompt feedback would be appreciated.\nThank you,\nMarion Blake\nLicensed Real Estate Broker\n(978) 555-4729\nmarion.blake@example.com\n[Attachment: Offer.pdf]",
     },
     {
-      prompt: "Hi Manny,\nCash offer came in today for $425K on the downtown property. No contingencies, 15-day close. Seller wants to accept.\nBest,\nLisa",
-      response1: "Lisa,\n\nWow, a cash offer with no contingencies - that's exactly what we were hoping for! $425K on the downtown property is a great price.\n\nI'll prepare the acceptance paperwork immediately. Can you get me the buyer's proof of funds so we can move fast on this 15-day timeline?\n\nI'll coordinate with the title company today to make sure we can hit that closing date. This is going to be a smooth transaction!\n\nThanks for the great news,\nManny",
-      response2: "Hi Lisa,\n\nFantastic! Cash offers are the best - especially with no contingencies and a quick close.\n\nThe seller will be thrilled with $425K. I'll get the purchase agreement prepared today and make sure we have everything lined up for the 15-day close.\n\nLet me know as soon as you have the buyer's financial verification and we can get this locked in. Great work bringing this offer in!\n\nManny"
+      prompt: "Subject: Questions About Home Inspection Report – 45 Beacon Street, Boston\nHi Manny,\nI just received the inspection report for the condo at 45 Beacon Street, Unit 3B, and there are a few issues noted with the electrical system and roof. Could you review the report and let me know if these warrant requesting repairs or a price adjustment from the seller?\nThanks,\nLaura Hernandez\n(617) 555-3094\nlaura.hernandez@example.com",
+    },
+    {
+      prompt: "Subject: Advice Needed on Competing Offers – 128 Elmwood Avenue, Cambridge\nHi Manny,\nWe've received two offers on our property, one with a higher price but more contingencies, and another with a lower price but all cash and no financing contingency. Could you help me weigh the pros and cons before I make a decision?\nBest,\nMichael Russo\n(781) 555-6218\nmichael.russo@example.com",
+    },
+    {
+      prompt: "Subject: Title Issue Found – 72 Seaview Avenue, Marblehead\nHi Manny,\nThe title company mentioned there's an old lien on the property from a contractor in 2015. Can you explain how this might impact the closing and whether the seller is responsible for clearing it before we move forward?\nThank you,\nDavid Kim\n(978) 555-8473\ndavid.kim@example.com",
+    },
+    {
+      prompt: "Subject: Closing Docs Needed – 19 Willow Lane, Lexington, MA 02420\nHi Manny,\nWe're scheduled to close on 19 Willow Lane, Lexington, MA 02420 this Friday, and the lender is requesting the final closing disclosure and deed draft today to stay on track. Could you confirm when these will be ready so I can coordinate with all parties?\nThanks,\nMarion Blake\nLicensed Real Estate Broker\n(978) 555-4729\nmarion.blake@example.com",
+    },
+    {
+      prompt: "Subject: Walkthrough Problem – 72 Seaview Avenue, Marblehead\nHi Manny,\nDuring the final walkthrough today, we noticed that the seller removed the dining room chandelier, which was supposed to be included per the purchase agreement. How should we address this before closing tomorrow?\nBest,\nSarah Mitchell\n(978) 555-2214\nsarah.mitchell@example.com",
+    },
+    {
+      prompt: "Subject: Financing Contingency Deadline – 19 Willow Lane, Lexington, MA\nHi Manny,\nMy lender just informed me that final underwriting on my mortgage for 19 Willow Lane, Lexington, MA 02420 may take an extra week. The financing contingency deadline in the purchase agreement is coming up in three days.\nCan you advise on whether we should request an extension now, and what happens if the loan isn't fully approved by the contingency date?\nThank you,\nEthan Wallace\n(617) 555-7625\nethan.wallace@example.com",
     }
   ];
   
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [prompt, setPrompt] = useState(examples[0].prompt);
-  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
+  const [currentSession, setCurrentSession] = useState<EnhancedChatSession | null>(null);
   const [sessionStats, setSessionStats] = useState({ total: 0, modelAWins: 0, modelBWins: 0 });
   const [modelARating, setModelARating] = useState(5);
   const [modelBRating, setModelBRating] = useState(5);
@@ -51,13 +64,11 @@ export default function ChatInterface() {
       const currentExample = examples[currentExampleIndex];
       const response = await apiRequest("POST", "/api/chats", {
         prompt: currentExample.prompt,
-        response1: currentExample.response1,
-        response2: currentExample.response2,
         userId: user?.id,
       });
       return response.json();
     },
-    onSuccess: (data: ChatSession) => {
+    onSuccess: (data: EnhancedChatSession) => {
       setCurrentSession(data);
       // Move to next example for next analysis
       const nextIndex = (currentExampleIndex + 1) % examples.length;
@@ -69,7 +80,9 @@ export default function ChatInterface() {
       setModelBComment("");
       toast({
         title: "Success",
-        description: "Document analysis completed successfully",
+        description: data.isSimulated 
+          ? "Document analysis completed using simulated responses"
+          : "Document analysis completed using live API responses",
       });
     },
     onError: () => {
@@ -164,7 +177,7 @@ export default function ChatInterface() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={4}
-                className="resize-none bg-gray-50"
+                className="bg-gray-50"
                 placeholder="Legal document content..."
                 disabled={true}
                 readOnly

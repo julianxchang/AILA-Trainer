@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, ThumbsUp, Clock, Trophy, Star, Download } from "lucide-react";
+import { MessageSquare, ThumbsUp, Trophy, Star, Download } from "lucide-react";
 
 export default function ResultsDashboard() {
   const { user } = useAuth();
@@ -31,7 +31,7 @@ export default function ResultsDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -55,20 +55,6 @@ export default function ResultsDashboard() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Average Rating</p>
                   <p className="text-2xl font-bold text-gray-900">{stats?.averageRating || "0"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Clock className="text-purple-600 h-6 w-6" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats?.avgResponseTime || "0s"}</p>
                 </div>
               </div>
             </CardContent>

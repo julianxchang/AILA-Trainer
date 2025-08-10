@@ -67,7 +67,6 @@ export default function ResponsePanel({
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">{title}</h3>
-              <p className="text-xs text-gray-500">{modelName}</p>
             </div>
           </div>
           <span className={cn("px-2 py-1 text-xs font-medium rounded-full", variantClasses[variant].icon)}>
