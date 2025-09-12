@@ -1,6 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { config } from "dotenv";
+import { join } from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
+// Load environment variables from the root .env file
+config({ path: join(process.cwd(), '.env') });
 
 const app = express();
 app.use(express.json());

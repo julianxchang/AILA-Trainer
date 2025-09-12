@@ -14,6 +14,9 @@ import type { ChatSession } from "@shared/schema";
 interface EnhancedChatSession extends ChatSession {
   responseSource?: "api" | "simulated";
   isSimulated?: boolean;
+  testCaseId?: string;
+  agentResponseAId?: string;
+  agentResponseBId?: string;
 }
 
 export default function ChatInterface() {
@@ -62,7 +65,7 @@ export default function ChatInterface() {
   const submitPromptMutation = useMutation({
     mutationFn: async () => {
       const currentExample = examples[currentExampleIndex];
-      const response = await apiRequest("POST", "/api/chats", {
+      const response = await apiRequest("POST", "/api/evaluations", {
         prompt: currentExample.prompt,
         userId: user?.id,
       });
@@ -98,13 +101,15 @@ export default function ChatInterface() {
     mutationFn: async () => {
       const winner = modelARating >= modelBRating ? "modelA" : "modelB";
       const response = await apiRequest("POST", "/api/comparisons", {
-        chatSessionId: currentSession?.id,
+        evaluationSessionId: currentSession?.id,
         winner,
         modelARating,
         modelBRating,
         modelAComment: modelAComment || undefined,
         modelBComment: modelBComment || undefined,
         userId: user?.id,
+        agentResponseAId: currentSession?.agentResponseAId,
+        agentResponseBId: currentSession?.agentResponseBId,
       });
       return response.json();
     },
@@ -210,7 +215,7 @@ export default function ChatInterface() {
       <div className="flex-1 flex">
         <ResponsePanel
           title="Response 1"
-          modelName="Legal Document Assistant"
+          modelName="Response 1"
           response={currentSession?.modelAResponse || null}
           isLoading={submitPromptMutation.isPending}
           onRate={setModelARating}
@@ -222,7 +227,7 @@ export default function ChatInterface() {
         
         <ResponsePanel
           title="Response 2"
-          modelName="Real Estate Legal Advisor"
+          modelName="Response 2"
           response={currentSession?.modelBResponse || null}
           isLoading={submitPromptMutation.isPending}
           onRate={setModelBRating}

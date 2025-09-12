@@ -1,167 +1,316 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertChatSessionSchema, insertComparisonSchema } from "@shared/schema";
+import { insertChatSessionSchema, insertComparisonSchema, insertEvaluationTestCaseSchema, insertAgentResponseSchema, insertHumanGradeSchema } from "@shared/schema";
 import { z } from "zod";
 import fetch from 'node-fetch';
+import { FastAPIService } from './fastapi-service';
+import { AILABackendService } from './aila-backend-service';
+import { emailPrompts } from './email-prompts';
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "https://aila-backend.azurewebsites.net";
+let fastAPIService: FastAPIService;
+let ailaBackendService: AILABackendService;
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Create chat session and get AI responses
-  app.post("/api/chats", async (req, res) => {
+  // Initialize services after environment variables are loaded
+  fastAPIService = new FastAPIService();
+  ailaBackendService = new AILABackendService();
+  
+  // Health check endpoint
+  app.get("/api/health", async (req, res) => {
     try {
-      const { prompt, userId } = req.body;
-
-      // Create initial chat session
-      const chatSession = await storage.createChatSession({
-        userId: userId || "demo-user",
-        prompt,
-        modelAResponse: null,
-        modelBResponse: null,
-        modelAName: "Legal Document Assistant",
-        modelBName: "Real Estate Legal Advisor",
-      });
-
-      // Try to call the real backend first, fall back to simulation if it fails
-      let modelAResponse: string;
-      let modelBResponse: string;
-      let responseSource = "api"; // Track the source of responses
+      // Test database connection and aila-backend connection
+      const testUser = await storage.getUser('00000000-0000-0000-0000-000000000000');
+      const ailaBackendConnected = await ailaBackendService.testConnection();
       
-      try {
-        // Create a new chat in the backend
-        const createChatResponse = await fetch(`${BACKEND_API_URL}/chats`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer fake-token` // This will fail, triggering fallback
-          },
-          body: JSON.stringify({
-            conversation_id: null
-          })
-        });
-
-        if (!createChatResponse.ok) {
-          throw new Error('Backend authentication failed');
-        }
-
-        const createChatData = await createChatResponse.json();
-        const backendChatId = createChatData.result.chat_id;
-
-        // Send the prompt to get AI response
-        const chatResponse = await fetch(`${BACKEND_API_URL}/chats/${backendChatId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer fake-token`
-          },
-          body: JSON.stringify({
-            prompt: prompt
-          })
-        });
-
-        if (!chatResponse.ok) {
-          throw new Error('Failed to get AI response from backend');
-        }
-
-        const chatData = await chatResponse.json();
-        const aiResponse = chatData.result && chatData.result.length > 0 
-          ? chatData.result[chatData.result.length - 1].content 
-          : "AI response not available";
-
-        // Use the real AI response for both models
-        modelAResponse = aiResponse;
-        modelBResponse = aiResponse;
-
-      } catch (error) {
-        console.log('Backend unavailable, using simulated responses:', error.message);
-        responseSource = "simulated"; // Mark as simulated
-        
-        // Fallback to simulated responses
-        const simulateAIResponse = (prompt: string, isFirstResponse: boolean) => {
-          // Extract sender name from email signature
-          const extractSenderName = (emailText: string) => {
-            const lines = emailText.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i].trim();
-              // Look for lines that could be names (after "Best," "Thanks," etc. and before contact info)
-              if (line && !line.includes('@') && !line.includes('(') && 
-                  !line.includes('Subject:') && !line.includes('Hi Manny') &&
-                  !line.includes('Licensed Real Estate Broker') && !line.includes('[Attachment') &&
-                  line.length > 3 && line.length < 50) {
-                // Check if previous line was a closing (Thanks, Best, etc.)
-                if (i > 0) {
-                  const prevLine = lines[i-1].trim().toLowerCase();
-                  if (prevLine.includes('thank') || prevLine.includes('best') || 
-                      prevLine.includes('looking forward') || prevLine.includes('sincerely')) {
-                    return line.replace(/,/g, ''); // Remove commas
-                  }
-                }
-              }
-            }
-            return "Client"; // Fallback
-          };
-
-          const senderName = extractSenderName(prompt);
-          
-          const legalResponses1 = [
-            `Thank you for reaching out regarding this matter. I'd be happy to assist you with this transaction.`,
-            `I received your inquiry and would be pleased to represent you in this matter.`,
-            `Thank you for contacting me about this property transaction. I have availability to help.`,
-            `I appreciate you reaching out. I can definitely assist with this real estate matter.`,
-            `Thank you for your message. I'm available to provide legal representation for this transaction.`
-          ];
-          
-          const legalResponses2 = [
-            `I've reviewed your message and understand the urgency of this matter.`,
-            `Thank you for providing the details. I can help guide you through this process.`,
-            `I understand your concerns and am here to provide the legal guidance you need.`,
-            `Thank you for the information. Let me address your questions and next steps.`,
-            `I've noted the details you've provided and can offer the following guidance.`
-          ];
-          
-          const actionItems1 = [
-            "To move forward, I'll need the following:\n• Copy of the purchase agreement or offer\n• Pre-approval letter from your lender\n• Property disclosure documents\n• Timeline for your preferred closing date",
-            "Please provide these documents so we can proceed:\n• Current listing agreement or purchase contract\n• Property deed and title information\n• Any inspection reports or assessments\n• Your preferred communication method and availability",
-            "I'll need to review the following before we proceed:\n• The signed offer or contract documents\n• Title search results and property history\n• Any contingency deadlines or time-sensitive matters\n• Contact information for all parties involved",
-            "To best represent your interests, please send:\n• All contract documents and amendments\n• Lender contact information and loan details\n• Property survey and inspection reports\n• Any correspondence with the other party"
-          ];
-          
-          const actionItems2 = [
-            "Here's what I recommend as our next steps:\n• Schedule a consultation to review all documents\n• Request any missing disclosures from the seller\n• Coordinate with your lender on timing requirements\n• Prepare a strategy for addressing the identified issues",
-            "I suggest we proceed with the following approach:\n• Review the contract terms and contingency periods\n• Contact the other party's attorney to discuss resolution\n• Gather additional documentation to support our position\n• Schedule a call to discuss your options and preferences",
-            "Based on your situation, here's my recommended approach:\n• Analyze the legal implications of the current terms\n• Research comparable transactions and market conditions\n• Prepare documentation to protect your interests\n• Coordinate with all parties to ensure smooth closing",
-            "Let's take these steps to address your concerns:\n• Conduct a thorough review of all agreements\n• Identify potential risks and mitigation strategies\n• Communicate with relevant parties to clarify terms\n• Develop a timeline that works for all involved"
-          ];
-          
-          const randomResponse = isFirstResponse ? legalResponses1 : legalResponses2;
-          const randomActions = isFirstResponse ? actionItems1 : actionItems2;
-          
-          const selectedResponse = randomResponse[Math.floor(Math.random() * randomResponse.length)];
-          const selectedActions = randomActions[Math.floor(Math.random() * randomActions.length)];
-          
-          return `Dear ${senderName},\n\n${selectedResponse}\n\n${selectedActions}\n\nI'm available for a call this week to discuss the details further. Please let me know your availability, and we can schedule a time that works for you.\n\nBest regards,\nManny\nAILA Legal Services`;
-        };
-
-        modelAResponse = simulateAIResponse(prompt, true);
-        modelBResponse = simulateAIResponse(prompt, false);
-      }
-
-      // Update with responses
-      const updatedSession = await storage.updateChatSession(chatSession.id, {
-        modelAResponse,
-        modelBResponse,
-      });
-
-      // Add response source information to the response
-      res.json({
-        ...updatedSession,
-        responseSource,
-        isSimulated: responseSource === "simulated"
+      res.json({ 
+        status: "healthy", 
+        database: "connected",
+        openaiKey: process.env.OPENAI_API_KEY ? "configured" : "missing",
+        ailaBackend: ailaBackendConnected ? "connected" : "disconnected"
       });
     } catch (error) {
-      console.error('Error calling backend API:', error);
-      res.status(400).json({ message: "Invalid request data or backend service unavailable" });
+      console.error('Health check failed:', error);
+      res.status(500).json({ 
+        status: "unhealthy", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get available email prompts
+  app.get("/api/emails", async (req, res) => {
+    try {
+      res.json({
+        message: "success",
+        result: emailPrompts.map(email => ({
+          id: email.id,
+          subject: email.subject,
+          category: email.category
+        }))
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch email prompts" });
+    }
+  });
+
+  // Get specific email content
+  app.get("/api/emails/:id", async (req, res) => {
+    try {
+      const emailId = parseInt(req.params.id);
+      const email = emailPrompts.find(e => e.id === emailId);
+      
+      if (!email) {
+        return res.status(404).json({ message: "Email not found" });
+      }
+      
+      res.json({
+        message: "success",
+        result: email
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch email" });
+    }
+  });
+
+  // Get test cases from aila-backend
+  app.get("/api/backend/test-cases", async (req, res) => {
+    try {
+      const category = req.query.category as string;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const testCases = await ailaBackendService.getTestCases(category, limit);
+      res.json({
+        message: "success",
+        result: testCases
+      });
+    } catch (error) {
+      console.error('Error fetching test cases from aila-backend:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch test cases from aila-backend",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get specific test case detail from aila-backend
+  app.get("/api/backend/test-cases/:id", async (req, res) => {
+    try {
+      const testCaseId = req.params.id;
+      const testCaseDetail = await ailaBackendService.getTestCaseDetail(testCaseId);
+      
+      res.json({
+        message: "success",
+        result: testCaseDetail
+      });
+    } catch (error) {
+      console.error('Error fetching test case detail from aila-backend:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch test case detail from aila-backend",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Submit grade to aila-backend
+  app.post("/api/backend/grade", async (req, res) => {
+    try {
+      const { response_id, score, feedback, grading_criteria } = req.body;
+      
+      if (!response_id || score === undefined) {
+        return res.status(400).json({ 
+          message: "response_id and score are required" 
+        });
+      }
+
+      const success = await ailaBackendService.submitGrade({
+        response_id,
+        score,
+        feedback,
+        grading_criteria
+      });
+      
+      res.json({
+        message: "Grade submitted successfully",
+        success
+      });
+    } catch (error) {
+      console.error('Error submitting grade to aila-backend:', error);
+      res.status(500).json({ 
+        message: "Failed to submit grade to aila-backend",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Create evaluation session using aila-backend test cases
+  app.post("/api/evaluations/from-backend", async (req, res) => {
+    try {
+      const { testCaseId, userId } = req.body;
+
+      if (!testCaseId) {
+        return res.status(400).json({ message: "testCaseId is required" });
+      }
+
+      // Get the test case from aila-backend
+      const testCaseDetail = await ailaBackendService.getTestCaseDetail(testCaseId);
+      
+      if (!testCaseDetail || !testCaseDetail.test_case) {
+        return res.status(404).json({ message: "Test case not found" });
+      }
+
+      const testCase = testCaseDetail.test_case;
+      
+      // Get both AI responses using the FastAPI service with test case input
+      const evaluationSessionId = `eval-${Date.now()}`;
+      const responses = await fastAPIService.getBothResponses(
+        testCase.input_text, 
+        evaluationSessionId, 
+        userId || "demo-user"
+      );
+      
+      // Create local evaluation record for compatibility
+      const localTestCase = await storage.createEvaluationTestCase({
+        caseName: testCase.case_name,
+        inputText: testCase.input_text,
+        contextData: { 
+          backendTestCaseId: testCase.id,
+          category: testCase.category,
+          ...testCase.context_data 
+        },
+        expectedBehavior: testCase.expected_behavior,
+        category: testCase.category,
+        difficultyLevel: testCase.difficulty_level,
+        createdBy: userId || "demo-user"
+      });
+
+      // Save agent responses locally for comparison UI
+      const agentResponseA = await storage.createAgentResponse({
+        testCaseId: localTestCase.id,
+        agentVersion: "gpt-3.5-turbo-compose",
+        responseText: responses.modelAResponse,
+        responseMetadata: { 
+          temperature: 0.3, 
+          systemPrompt: "Legal Document Assistant",
+          backendTestCaseId: testCase.id
+        },
+        sessionId: evaluationSessionId
+      });
+
+      const agentResponseB = await storage.createAgentResponse({
+        testCaseId: localTestCase.id,
+        agentVersion: "gpt-3.5-turbo-research", 
+        responseText: responses.modelBResponse,
+        responseMetadata: { 
+          temperature: 0.7, 
+          systemPrompt: "Real Estate Legal Advisor",
+          backendTestCaseId: testCase.id
+        },
+        sessionId: evaluationSessionId
+      });
+
+      // Return evaluation data
+      res.json({
+        id: evaluationSessionId,
+        testCaseId: localTestCase.id,
+        backendTestCaseId: testCase.id,
+        agentResponseAId: agentResponseA.id,
+        agentResponseBId: agentResponseB.id,
+        modelAResponse: responses.modelAResponse,
+        modelBResponse: responses.modelBResponse,
+        modelAName: "Response 1",
+        modelBName: "Response 2",
+        prompt: testCase.input_text,
+        expectedBehavior: testCase.expected_behavior,
+        category: testCase.category,
+        userId: userId || "demo-user",
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error creating evaluation from backend:', error);
+      res.status(500).json({ 
+        message: "Server error", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Create evaluation session using predefined emails (NO CHAT NEEDED)
+  app.post("/api/evaluations", async (req, res) => {
+    try {
+      const { emailId, userId } = req.body;
+
+      // Get the email prompt by ID (default to first email if not specified)
+      const selectedEmail = emailPrompts.find(email => email.id === emailId) || emailPrompts[0];
+      
+      // Create evaluation test case
+      const testCase = await storage.createEvaluationTestCase({
+        caseName: selectedEmail.subject,
+        inputText: selectedEmail.content,
+        contextData: { emailId, category: selectedEmail.category },
+        expectedBehavior: "Professional legal response with specific next steps",
+        category: selectedEmail.category,
+        difficultyLevel: 3,
+        createdBy: userId || "demo-user"
+      });
+      
+      // Get both AI responses using the FastAPI service with email content
+      const fullEmailContent = `Subject: ${selectedEmail.subject}\n\n${selectedEmail.content}`;
+      const evaluationSessionId = `eval-${Date.now()}`;
+      const responses = await fastAPIService.getBothResponses(fullEmailContent, evaluationSessionId, userId || "demo-user");
+      
+      // Save agent responses to evaluation schema (NO CHAT TABLES NEEDED)
+      const agentResponseA = await storage.createAgentResponse({
+        testCaseId: testCase.id,
+        agentVersion: "gpt-3.5-turbo-compose",
+        responseText: responses.modelAResponse,
+        responseMetadata: { 
+          temperature: 0.3, 
+          systemPrompt: "Legal Document Assistant"
+        },
+        sessionId: evaluationSessionId
+      });
+
+      const agentResponseB = await storage.createAgentResponse({
+        testCaseId: testCase.id,
+        agentVersion: "gpt-3.5-turbo-research", 
+        responseText: responses.modelBResponse,
+        responseMetadata: { 
+          temperature: 0.7, 
+          systemPrompt: "Real Estate Legal Advisor"
+        },
+        sessionId: evaluationSessionId
+      });
+
+      // Return evaluation data (NO CHAT SESSION NEEDED)
+      res.json({
+        id: evaluationSessionId,
+        testCaseId: testCase.id,
+        agentResponseAId: agentResponseA.id,
+        agentResponseBId: agentResponseB.id,
+        modelAResponse: responses.modelAResponse,
+        modelBResponse: responses.modelBResponse,
+        modelAName: "Response 1",
+        modelBName: "Response 2",
+        prompt: `Subject: ${selectedEmail.subject}\n\n${selectedEmail.content}`,
+        userId: userId || "demo-user",
+        createdAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error in /api/evaluations:', error);
+      
+      // More detailed error reporting
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      res.status(500).json({ 
+        message: "Server error", 
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: "Check server logs for more information"
+      });
     }
   });
 
@@ -189,17 +338,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Submit comparison vote/rating
+  // Submit comparison vote/rating for evaluation
   app.post("/api/comparisons", async (req, res) => {
     try {
-      const comparisonData = insertComparisonSchema.parse({
-        ...req.body,
-        userId: req.body.userId || "demo-user",
-      });
+      const { 
+        evaluationSessionId, modelARating, modelBRating, modelAComment, modelBComment, 
+        userId, agentResponseAId, agentResponseBId, backendTestCaseId
+      } = req.body;
 
-      const comparison = await storage.createComparison(comparisonData);
-      res.json(comparison);
+      // Save human grades to evaluation schema (NO LEGACY COMPARISONS NEEDED)
+      const gradePromises = [];
+      const backendGradePromises = [];
+      
+      if (agentResponseAId && modelARating) {
+        // Save to local storage
+        gradePromises.push(storage.createHumanGrade({
+          responseId: agentResponseAId,
+          graderId: userId || "demo-user",
+          score: modelARating,
+          feedback: modelAComment || null,
+          gradingCriteria: { 
+            responseName: "Response 1",
+            comparisonWinner: modelARating >= modelBRating ? "this" : "other"
+          },
+          gradingSessionId: evaluationSessionId
+        }));
+
+        // If we have a backend test case, also submit to aila-backend
+        if (backendTestCaseId) {
+          // Get the agent response to find any backend response IDs
+          const agentResponse = await storage.getAgentResponseById(agentResponseAId);
+          const backendResponseId = agentResponse?.responseMetadata?.backendResponseId;
+          
+          if (backendResponseId) {
+            backendGradePromises.push(ailaBackendService.submitGrade({
+              response_id: backendResponseId,
+              score: modelARating,
+              feedback: modelAComment || undefined,
+              grading_criteria: { 
+                responseName: "Response 1",
+                comparisonWinner: modelARating >= modelBRating ? "this" : "other",
+                evaluationSessionId
+              }
+            }));
+          }
+        }
+      }
+
+      if (agentResponseBId && modelBRating) {
+        // Save to local storage
+        gradePromises.push(storage.createHumanGrade({
+          responseId: agentResponseBId,
+          graderId: userId || "demo-user", 
+          score: modelBRating,
+          feedback: modelBComment || null,
+          gradingCriteria: {
+            responseName: "Response 2", 
+            comparisonWinner: modelBRating >= modelARating ? "this" : "other"
+          },
+          gradingSessionId: evaluationSessionId
+        }));
+
+        // If we have a backend test case, also submit to aila-backend
+        if (backendTestCaseId) {
+          const agentResponse = await storage.getAgentResponseById(agentResponseBId);
+          const backendResponseId = agentResponse?.responseMetadata?.backendResponseId;
+          
+          if (backendResponseId) {
+            backendGradePromises.push(ailaBackendService.submitGrade({
+              response_id: backendResponseId,
+              score: modelBRating,
+              feedback: modelBComment || undefined,
+              grading_criteria: {
+                responseName: "Response 2", 
+                comparisonWinner: modelBRating >= modelARating ? "this" : "other",
+                evaluationSessionId
+              }
+            }));
+          }
+        }
+      }
+
+      // Execute all promises
+      const [grades, backendResults] = await Promise.all([
+        Promise.all(gradePromises),
+        Promise.all(backendGradePromises)
+      ]);
+      
+      res.json({ 
+        success: true, 
+        grades: grades.length,
+        backendGrades: backendResults.length,
+        winner: modelARating >= modelBRating ? "modelA" : "modelB",
+        evaluationSessionId
+      });
     } catch (error) {
+      console.error("Error saving comparison:", error);
       res.status(400).json({ message: "Invalid comparison data" });
     }
   });
@@ -208,9 +442,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/comparisons", async (req, res) => {
     try {
       const userId = req.query.userId as string || "demo-user";
-      const comparisons = await storage.getComparisonsByUser(userId);
+      // Use evaluation-based data instead of legacy comparisons
+      const comparisons = await storage.getRecentGradesByUser(userId, 50); // Get more for full history
       res.json(comparisons);
     } catch (error) {
+      console.error("Error fetching comparisons:", error);
       res.status(500).json({ message: "Failed to fetch comparisons" });
     }
   });
@@ -219,29 +455,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", async (req, res) => {
     try {
       const userId = req.query.userId as string || "demo-user";
-      const comparisons = await storage.getComparisonsByUser(userId);
-      const sessions = await storage.getChatSessionsByUser(userId);
-
-      const totalComparisons = comparisons.length;
-      const modelAWins = comparisons.filter(c => c.winner === "modelA").length;
-      const modelBWins = comparisons.filter(c => c.winner === "modelB").length;
-      
-      const allRatings = [
-        ...comparisons.filter(c => c.modelARating).map(c => c.modelARating!),
-        ...comparisons.filter(c => c.modelBRating).map(c => c.modelBRating!)
-      ];
-      const averageRating = allRatings.length > 0 
-        ? (allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length).toFixed(1)
-        : "0";
-
-      res.json({
-        totalComparisons,
-        modelAWins,
-        modelBWins,
-        averageRating,
-        preferredModel: modelAWins > modelBWins ? "Response 1" : "Response 2",
-      });
+      // Use evaluation-based stats instead of legacy stats
+      const stats = await storage.getEvaluationStatsByUser(userId);
+      res.json(stats);
     } catch (error) {
+      console.error("Error fetching stats:", error);
       res.status(500).json({ message: "Failed to fetch statistics" });
     }
   });

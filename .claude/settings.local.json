@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(cross-env:*)",
+      "Bash(curl:*)",
+      "Bash(set PORT=3001)",
+      "Bash(wmic:*)",
+      "Bash(powershell:*)",
+      "Bash(npm run:*)"
+    ],
+    "deny": []
+  }
+}
